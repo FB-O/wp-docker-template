@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: ${COMPOSE_PROJECT-NAME}_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./db:/var/lib/mysql
+    networks:
+      - wordpress_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # WordPress Service
+  wordpress:
+    image: wordpress:latest
+    contaienr_name: ${COMPOSE_PROJECT_NAME}_wordpress
+    restart: unless-stopped
+    depends-on:
+      db:
+        condition: service_healthy
+      environment:
+        WORDPRESS_DB_HOST: db:3306
+        WORDPRESS_DB_NAME: ${DB_NAME}
+        WORDPRESS_DB_USER: ${DB_USER}
+        WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+        WORDPRESS_TABLE_PREFIX: wp_
+      volumes:
+        - ./wordpress:/var/www/html
+      ports:
+        - "${WP_PORT}:80"
+      networks:
+        - wordpress_network
+
+networks:
+  wordpress_network:
+    driver: bridge
+
